@@ -297,8 +297,9 @@ async function renderDashboard() {
   const dateKeys = getRecentDateKeys(7);
   const newest = dateKeys[0];
   const oldest = dateKeys[dateKeys.length - 1];
-  const entries = await getEntriesByRange(oldest, newest);
-  const byDate = new Map(entries.map((entry) => [entry.date, entry]));
+  const recentEntries = await getEntriesByRange(oldest, newest);
+  const byDate = new Map(recentEntries.map((entry) => [entry.date, entry]));
+  const allEntries = await getAllEntries();
 
   refs.dashboardRows.innerHTML = "";
 
@@ -306,40 +307,36 @@ async function renderDashboard() {
 
   for (const dateKey of dateKeys) {
     const entry = byDate.get(dateKey);
+    if (entry) {
+      usedEntries.push(entry);
+    }
+  }
+
+  if (allEntries.length === 0) {
     const tr = document.createElement("tr");
-    if (!entry) {
+    tr.innerHTML = `<td colspan="8">Aucune entrée enregistrée.</td>`;
+    refs.dashboardRows.appendChild(tr);
+  } else {
+    for (const entry of allEntries) {
+      const tr = document.createElement("tr");
+      const tib = computeTibMinutes(entry.bedtime, entry.wakeFinal);
+      const tst = computeTstMinutes(tib, Number(entry.awakeMinutes) || 0);
+
       tr.innerHTML = `
-        <td>${formatDateForDisplay(dateKey)}</td>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
+        <td>${formatDateForDisplay(entry.date)}</td>
+        <td>${entry.bedtime || "-"}</td>
+        <td>${entry.wakeFinal || "-"}</td>
+        <td>${Number(entry.awakeMinutes) || 0}</td>
+        <td>${Number(entry.energy) || 0}</td>
+        <td>${formatMinutesAsDuration(tib)}</td>
+        <td>${formatMinutesAsDuration(tst)}</td>
+        <td class="row-actions">
+          <button type="button" class="table-action" data-action="edit" data-date="${entry.date}">Modifier</button>
+          <button type="button" class="table-action delete" data-action="delete" data-date="${entry.date}">Supprimer</button>
+        </td>
       `;
       refs.dashboardRows.appendChild(tr);
-      continue;
     }
-
-    usedEntries.push(entry);
-    const tib = computeTibMinutes(entry.bedtime, entry.wakeFinal);
-    const tst = computeTstMinutes(tib, Number(entry.awakeMinutes) || 0);
-
-    tr.innerHTML = `
-      <td>${formatDateForDisplay(entry.date)}</td>
-      <td>${entry.bedtime || "-"}</td>
-      <td>${entry.wakeFinal || "-"}</td>
-      <td>${Number(entry.awakeMinutes) || 0}</td>
-      <td>${Number(entry.energy) || 0}</td>
-      <td>${formatMinutesAsDuration(tib)}</td>
-      <td>${formatMinutesAsDuration(tst)}</td>
-      <td class="row-actions">
-        <button type="button" class="table-action" data-action="edit" data-date="${entry.date}">Modifier</button>
-        <button type="button" class="table-action delete" data-action="delete" data-date="${entry.date}">Supprimer</button>
-      </td>
-    `;
-    refs.dashboardRows.appendChild(tr);
   }
 
   const averages = computeAverages(usedEntries);
@@ -528,7 +525,34 @@ function registerServiceWorker() {
   }
   window.addEventListener("load", async () => {
     try {
-      await navigator.serviceWorker.register("./sw.js");
+      const registration = await navigator.serviceWorker.register("./sw.js");
+
+      if (registration.waiting) {
+        registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      }
+
+      registration.addEventListener("updatefound", () => {
+        const newWorker = registration.installing;
+        if (!newWorker) {
+          return;
+        }
+        newWorker.addEventListener("statechange", () => {
+          if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+            newWorker.postMessage({ type: "SKIP_WAITING" });
+          }
+        });
+      });
+
+      let didRefresh = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (didRefresh) {
+          return;
+        }
+        didRefresh = true;
+        window.location.reload();
+      });
+
+      registration.update();
     } catch (error) {
       // No-op: app still works without SW registration.
     }
