@@ -57,6 +57,13 @@ export async function getEntry(date) {
   return value || null;
 }
 
+export async function deleteEntry(date) {
+  const db = await openDb();
+  const tx = db.transaction(ENTRIES_STORE, "readwrite");
+  tx.objectStore(ENTRIES_STORE).delete(date);
+  await transactionDone(tx);
+}
+
 export async function getAllEntries() {
   const db = await openDb();
   const tx = db.transaction(ENTRIES_STORE, "readonly");

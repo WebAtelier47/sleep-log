@@ -198,6 +198,10 @@ button.danger {
   background: #33161f;
 }
 
+button[hidden] {
+  display: none;
+}
+
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
@@ -252,6 +256,24 @@ td {
 th {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.table-action {
+  min-height: 32px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.table-action.delete {
+  border-color: #973a4d;
+  color: #ffd8df;
+  background: #33161f;
 }
 
 .stack {

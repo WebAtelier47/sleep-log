@@ -111,6 +111,7 @@
                   <th>Énergie</th>
                   <th>TIB</th>
                   <th>TST</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="dashboardRows"></tbody>
@@ -126,6 +127,12 @@
             <input id="targetWake" name="targetWake" type="time" value="06:40" required />
             <button type="submit" class="primary">Enregistrer le réglage</button>
           </form>
+
+          <section class="card stack">
+            <h3>Installation</h3>
+            <button id="installAppBtn" type="button" class="primary" hidden>Installer l'app</button>
+            <p id="installHelp" class="message" aria-live="polite"></p>
+          </section>
 
           <section class="card stack">
             <h3>Données</h3>

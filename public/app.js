@@ -1,5 +1,6 @@
 import {
   clearAllData,
+  deleteEntry,
   getAllEntries,
   getAllSettings,
   getEntriesByRange,
@@ -33,6 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   cacheRefs();
   setupNavigation();
   setupMorningForm();
+  setupDashboardActions();
   setupSettings();
   setupInstallPrompt();
   setupConnectivityIndicator();
@@ -194,6 +196,41 @@ function setupMorningForm() {
   });
 }
 
+function setupDashboardActions() {
+  refs.dashboardRows.addEventListener("click", async (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLButtonElement)) {
+      return;
+    }
+    const action = target.dataset.action;
+    const date = target.dataset.date;
+    if (!action || !date) {
+      return;
+    }
+
+    if (action === "edit") {
+      refs.entryDate.value = date;
+      setActiveView("morning");
+      await refreshMorningFromSelectedDate();
+      return;
+    }
+
+    if (action === "delete") {
+      const confirmed = window.confirm(
+        `Supprimer l'entrée du ${formatDateForDisplay(date)} ? Cette action est irréversible.`
+      );
+      if (!confirmed) {
+        return;
+      }
+      await deleteEntry(date);
+      if (refs.entryDate.value === date) {
+        await refreshMorningFromSelectedDate();
+      }
+      await renderDashboard();
+    }
+  });
+}
+
 function setSegmentValue(group, hiddenInput, value) {
   hiddenInput.value = value;
   for (const button of group.querySelectorAll("button")) {
@@ -267,7 +304,8 @@ async function renderDashboard() {
     const tr = document.createElement("tr");
     if (!entry) {
       tr.innerHTML = `
-        <td>${dateKey}</td>
+        <td>${formatDateForDisplay(dateKey)}</td>
+        <td>-</td>
         <td>-</td>
         <td>-</td>
         <td>-</td>
@@ -284,13 +322,17 @@ async function renderDashboard() {
     const tst = computeTstMinutes(tib, Number(entry.awakeMinutes) || 0);
 
     tr.innerHTML = `
-      <td>${entry.date}</td>
+      <td>${formatDateForDisplay(entry.date)}</td>
       <td>${entry.bedtime || "-"}</td>
       <td>${entry.wakeFinal || "-"}</td>
       <td>${Number(entry.awakeMinutes) || 0}</td>
       <td>${Number(entry.energy) || 0}</td>
       <td>${formatMinutesAsDuration(tib)}</td>
       <td>${formatMinutesAsDuration(tst)}</td>
+      <td class="row-actions">
+        <button type="button" class="table-action" data-action="edit" data-date="${entry.date}">Modifier</button>
+        <button type="button" class="table-action delete" data-action="delete" data-date="${entry.date}">Supprimer</button>
+      </td>
     `;
     refs.dashboardRows.appendChild(tr);
   }
@@ -493,6 +535,18 @@ function isIosSafari() {
   const isCriOS = /CriOS/i.test(ua);
   const isFxiOS = /FxiOS/i.test(ua);
   return isIos && isWebkit && !isCriOS && !isFxiOS;
+}
+
+function formatDateForDisplay(dateKey) {
+  if (typeof dateKey !== "string") {
+    return "-";
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+  if (!match) {
+    return dateKey;
+  }
+  const [, year, month, day] = match;
+  return `${day}-${month}-${year}`;
 }
 
 function getLocalDateKey(date) {
