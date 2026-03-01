@@ -56,6 +56,7 @@ function cacheRefs() {
 
   refs.morningForm = document.getElementById("morningForm");
   refs.entryDate = document.getElementById("entryDate");
+  refs.entryDateDisplay = document.getElementById("entryDateDisplay");
   refs.bedtime = document.getElementById("bedtime");
   refs.wakeFinal = document.getElementById("wakeFinal");
   refs.wakeCountGroup = document.getElementById("wakeCountGroup");
@@ -148,6 +149,7 @@ function setupMorningForm() {
   });
 
   refs.entryDate.addEventListener("change", async () => {
+    renderSelectedDateDisplay();
     await refreshMorningFromSelectedDate();
   });
 
@@ -174,7 +176,7 @@ function setupMorningForm() {
     };
 
     await putEntry(entry);
-    refs.morningMessage.textContent = "Enregistré";
+    refs.morningMessage.textContent = `Enregistré pour le ${formatDateForDisplay(entry.date)}.`;
     refs.morningMessage.className = "message success";
     await renderDashboard();
   });
@@ -182,6 +184,7 @@ function setupMorningForm() {
   refs.morningForm.addEventListener("reset", () => {
     window.setTimeout(() => {
       refs.entryDate.value = getLocalDateKey(new Date());
+      renderSelectedDateDisplay();
       refs.bedtime.value = "";
       refs.wakeFinal.value = "";
       refs.energy.value = "5";
@@ -210,6 +213,7 @@ function setupDashboardActions() {
 
     if (action === "edit") {
       refs.entryDate.value = date;
+      renderSelectedDateDisplay();
       setActiveView("morning");
       await refreshMorningFromSelectedDate();
       return;
@@ -274,6 +278,7 @@ function initTodayDate() {
   const today = getLocalDateKey(new Date());
   refs.entryDate.defaultValue = today;
   refs.entryDate.value = today;
+  renderSelectedDateDisplay();
 }
 
 async function ensureDefaultSettings() {
@@ -371,9 +376,11 @@ function setupSettings() {
   });
 
   refs.exportBtn.addEventListener("click", async () => {
+    const exportDate = getLocalDateKey(new Date());
     const payload = {
       version: 1,
       exportedAt: new Date().toISOString(),
+      exportedAtDate: formatDateForDisplay(exportDate),
       entries: await getAllEntries(),
       settings: await getAllSettings(),
     };
@@ -381,12 +388,12 @@ function setupSettings() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "sleep-log-export.json";
+    link.download = `sleep-log-export-${formatDateForDisplay(exportDate)}.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    refs.settingsMessage.textContent = "Export terminé.";
+    refs.settingsMessage.textContent = `Export terminé (${formatDateForDisplay(exportDate)}).`;
     refs.settingsMessage.className = "message success";
   });
 
@@ -535,6 +542,15 @@ function isIosSafari() {
   const isCriOS = /CriOS/i.test(ua);
   const isFxiOS = /FxiOS/i.test(ua);
   return isIos && isWebkit && !isCriOS && !isFxiOS;
+}
+
+function renderSelectedDateDisplay() {
+  const selectedDate = refs.entryDate.value;
+  if (!selectedDate) {
+    refs.entryDateDisplay.textContent = "";
+    return;
+  }
+  refs.entryDateDisplay.textContent = `Date sélectionnée : ${formatDateForDisplay(selectedDate)}`;
 }
 
 function formatDateForDisplay(dateKey) {
