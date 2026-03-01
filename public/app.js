@@ -27,12 +27,14 @@ const state = {
 };
 
 const refs = {};
+let deferredInstallPrompt = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   cacheRefs();
   setupNavigation();
   setupMorningForm();
   setupSettings();
+  setupInstallPrompt();
   setupConnectivityIndicator();
   initTodayDate();
   await ensureDefaultSettings();
@@ -77,6 +79,8 @@ function cacheRefs() {
   refs.importBtn = document.getElementById("importBtn");
   refs.clearBtn = document.getElementById("clearBtn");
   refs.settingsMessage = document.getElementById("settingsMessage");
+  refs.installAppBtn = document.getElementById("installAppBtn");
+  refs.installHelp = document.getElementById("installHelp");
 }
 
 function setupNavigation() {
@@ -410,6 +414,65 @@ function setupConnectivityIndicator() {
   renderStatus();
 }
 
+function setupInstallPrompt() {
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+
+  if (isStandalone) {
+    refs.installHelp.textContent = "Application déjà installée.";
+    refs.installHelp.className = "message success";
+    refs.installAppBtn.hidden = true;
+    return;
+  }
+
+  if (isIosSafari()) {
+    refs.installHelp.textContent =
+      "iPhone/iPad: ouvrez le menu Partager puis « Sur l’écran d’accueil ».";
+    refs.installHelp.className = "message";
+  } else {
+    refs.installHelp.textContent =
+      "Android: si le bouton n'apparaît pas, ouvrez le menu du navigateur puis « Installer l'application ».";
+    refs.installHelp.className = "message";
+  }
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    refs.installAppBtn.hidden = false;
+    refs.installHelp.textContent = "Installation disponible.";
+    refs.installHelp.className = "message success";
+  });
+
+  refs.installAppBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+      refs.installHelp.textContent =
+        "Installation non disponible automatiquement. Utilisez le menu du navigateur.";
+      refs.installHelp.className = "message";
+      return;
+    }
+
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice.outcome === "accepted") {
+      refs.installHelp.textContent = "Installation lancée.";
+      refs.installHelp.className = "message success";
+      refs.installAppBtn.hidden = true;
+    } else {
+      refs.installHelp.textContent = "Installation annulée.";
+      refs.installHelp.className = "message";
+    }
+    deferredInstallPrompt = null;
+  });
+
+  window.addEventListener("appinstalled", () => {
+    refs.installHelp.textContent = "Application installée.";
+    refs.installHelp.className = "message success";
+    refs.installAppBtn.hidden = true;
+    deferredInstallPrompt = null;
+  });
+}
+
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) {
     return;
@@ -421,6 +484,15 @@ function registerServiceWorker() {
       // No-op: app still works without SW registration.
     }
   });
+}
+
+function isIosSafari() {
+  const ua = window.navigator.userAgent;
+  const isIos = /iPad|iPhone|iPod/.test(ua);
+  const isWebkit = /WebKit/i.test(ua);
+  const isCriOS = /CriOS/i.test(ua);
+  const isFxiOS = /FxiOS/i.test(ua);
+  return isIos && isWebkit && !isCriOS && !isFxiOS;
 }
 
 function getLocalDateKey(date) {

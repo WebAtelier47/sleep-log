@@ -198,6 +198,10 @@ button.danger {
   background: #33161f;
 }
 
+button[hidden] {
+  display: none;
+}
+
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
