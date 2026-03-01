@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101725" />
+    <title>Sleep Log</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./assets/icon-192.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <h1>Sleep Log</h1>
+        <span id="networkStatus" class="status-badge" aria-live="polite">En ligne</span>
+      </header>
+
+      <main class="content">
+        <section id="view-morning" class="view active" aria-labelledby="tab-morning">
+          <h2>Matin</h2>
+          <form id="morningForm" novalidate>
+            <div class="card field-grid">
+              <label for="entryDate">Date</label>
+              <input id="entryDate" name="date" type="date" required />
+
+              <label for="bedtime">Heure de coucher</label>
+              <input id="bedtime" name="bedtime" type="time" required />
+
+              <label for="wakeFinal">Heure de réveil final</label>
+              <input id="wakeFinal" name="wakeFinal" type="time" required />
+            </div>
+
+            <div class="card">
+              <p class="field-label">Nombre de réveils nocturnes</p>
+              <div id="wakeCountGroup" class="segmented" role="group" aria-label="Nombre de réveils nocturnes">
+                <button type="button" data-value="0" class="seg active">0</button>
+                <button type="button" data-value="1" class="seg">1</button>
+                <button type="button" data-value="2" class="seg">2</button>
+                <button type="button" data-value="3" class="seg">3+</button>
+              </div>
+              <input id="wakeCount" name="wakeCount" type="hidden" value="0" />
+            </div>
+
+            <div class="card">
+              <p class="field-label">Minutes éveillé total la nuit</p>
+              <div id="awakeMinutesGroup" class="segmented" role="group" aria-label="Minutes éveillé total la nuit">
+                <button type="button" data-value="0" class="seg active">0</button>
+                <button type="button" data-value="10" class="seg">10</button>
+                <button type="button" data-value="20" class="seg">20</button>
+                <button type="button" data-value="40" class="seg">40</button>
+                <button type="button" data-value="60" class="seg">60+</button>
+              </div>
+              <input id="awakeMinutes" name="awakeMinutes" type="hidden" value="0" />
+            </div>
+
+            <div class="card">
+              <label for="energy">Énergie au réveil : <span id="energyValue">5</span>/10</label>
+              <input id="energy" name="energy" type="range" min="0" max="10" step="1" value="5" />
+            </div>
+
+            <div class="card">
+              <div class="toggle-row">
+                <label for="ruminations">Ruminations</label>
+                <input id="ruminations" name="ruminations" type="checkbox" role="switch" />
+              </div>
+
+              <label for="note">Note (optionnel)</label>
+              <textarea id="note" name="note" rows="4" placeholder="Ex : réveils vers 3h30"></textarea>
+            </div>
+
+            <div class="actions">
+              <button type="submit" class="primary">Enregistrer</button>
+              <button type="reset">Réinitialiser</button>
+            </div>
+            <p id="morningMessage" class="message" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section id="view-dashboard" class="view" aria-labelledby="tab-dashboard" hidden>
+          <h2>Dashboard (7 jours)</h2>
+
+          <div class="cards">
+            <article class="card metric">
+              <h3>Moyenne énergie</h3>
+              <p id="avgEnergy">-</p>
+            </article>
+            <article class="card metric">
+              <h3>Réveil final moyen</h3>
+              <p id="avgWakeFinal">-</p>
+            </article>
+            <article class="card metric">
+              <h3>Heure de lever cible</h3>
+              <p id="targetWakeDisplay">06:40</p>
+            </article>
+          </div>
+
+          <article class="card">
+            <h3>Pattern coucher</h3>
+            <p id="patternResult">Pas assez de données</p>
+          </article>
+
+          <div class="card table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Coucher</th>
+                  <th>Réveil</th>
+                  <th>Éveillé (min)</th>
+                  <th>Énergie</th>
+                  <th>TIB</th>
+                  <th>TST</th>
+                </tr>
+              </thead>
+              <tbody id="dashboardRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="view-settings" class="view" aria-labelledby="tab-settings" hidden>
+          <h2>Réglages</h2>
+
+          <form id="settingsForm" class="card">
+            <label for="targetWake">Heure de lever cible</label>
+            <input id="targetWake" name="targetWake" type="time" value="06:40" required />
+            <button type="submit" class="primary">Enregistrer le réglage</button>
+          </form>
+
+          <section class="card stack">
+            <h3>Données</h3>
+            <button id="exportBtn" type="button">Export JSON</button>
+            <label for="importFile">Import JSON</label>
+            <input id="importFile" type="file" accept="application/json" />
+            <button id="importBtn" type="button">Importer et restaurer</button>
+            <button id="clearBtn" type="button" class="danger">Tout effacer</button>
+            <p id="settingsMessage" class="message" aria-live="polite"></p>
+          </section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Navigation principale">
+        <button id="tab-morning" data-view="morning" class="nav-btn active" aria-current="page">Matin</button>
+        <button id="tab-dashboard" data-view="dashboard" class="nav-btn">Dashboard</button>
+        <button id="tab-settings" data-view="settings" class="nav-btn">Réglages</button>
+      </nav>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
