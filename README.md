@@ -28,6 +28,18 @@ npm run build  # copie public/ vers dist/
 npm run check  # lint + build
 ```
 
+## Déploiement GitHub Pages
+
+Le dépôt inclut un workflow GitHub Actions (`.github/workflows/deploy-pages.yml`) qui:
+
+1. se lance à chaque push sur `main`
+2. exécute le build statique (`npm run build`)
+3. publie `dist/` sur GitHub Pages
+
+URL attendue pour ce dépôt:
+
+`https://webatelier47.github.io/sleep-log/`
+
 ## Installation PWA
 
 1. Ouvrir l’app dans Chrome/Edge/Brave.
